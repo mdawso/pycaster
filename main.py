@@ -1,9 +1,14 @@
 import pygame
 import math
+import asyncio
 
 # Screen dimensions
-SCREEN_WIDTH = 800
-SCREEN_HEIGHT = 600
+SCREEN_WIDTH = 1280
+SCREEN_HEIGHT = 720
+
+ray_every_n_pixels = 1
+
+menu = False
 
 # Map dimensions
 MAP_WIDTH = 24
@@ -37,8 +42,8 @@ world_map = [
     [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1]
 ]
 
-LIGHTRED = (255, 100, 100)
-DARKRED = (139, 0, 0)
+LIGHTRED = (200, 0, 0)
+DARKRED = (100, 0, 0)
 
 # Player starting position and direction
 pos_x = 22.0
@@ -61,7 +66,9 @@ def draw():
     # Draw floor
     screen.fill((50, 50, 50), (0, SCREEN_HEIGHT // 2, SCREEN_WIDTH, SCREEN_HEIGHT // 2))
 
-    for x in range(SCREEN_WIDTH):
+    # Draw world
+    x = 1
+    while x < SCREEN_WIDTH:
         # Calculate ray position and direction
         camera_x = 2 * x / float(SCREEN_WIDTH) - 1
         ray_dir_x = dir_x + plane_x * camera_x
@@ -142,9 +149,72 @@ def draw():
         color = (color[0] * color_intensity // 255, color[1] * color_intensity // 255, color[2] * color_intensity // 255)
 
         # Draw the pixels of the stripe as a vertical line
-        pygame.draw.line(screen, color, (x, draw_start), (x, draw_end))
+        if ray_every_n_pixels == 1: pygame.draw.line(screen, color, (x, draw_start), (x, draw_end))
+        elif ray_every_n_pixels >= 2:
+            pygame.draw.rect(screen, color, (x, draw_start, ray_every_n_pixels, draw_end - draw_start))
 
-def main():
+        # Increment n
+        x += ray_every_n_pixels
+
+    if menu:
+        pass
+
+from enum import Enum
+class Direction(Enum):
+    FORWARD = 1
+    BACKWARD = 2
+    LEFT = 3
+    RIGHT = 4
+
+def strafe(move_speed, direction):
+    global pos_x, pos_y, dir_x, dir_y, plane_x, plane_y
+    if direction == Direction.FORWARD:
+        if world_map[int(pos_x + dir_x * move_speed)][int(pos_y)] == 0:
+            pos_x += dir_x * move_speed
+        if world_map[int(pos_x)][int(pos_y + dir_y * move_speed)] == 0:
+            pos_y += dir_y * move_speed
+    if direction == Direction.BACKWARD:
+        if world_map[int(pos_x - dir_x * move_speed)][int(pos_y)] == 0:
+            pos_x -= dir_x * move_speed
+        if world_map[int(pos_x)][int(pos_y - dir_y * move_speed)] == 0:
+            pos_y -= dir_y * move_speed
+    if direction == Direction.LEFT:
+        if world_map[int(pos_x - plane_x * move_speed)][int(pos_y)] == 0:
+            pos_x -= plane_x * move_speed
+        if world_map[int(pos_x)][int(pos_y - plane_y * move_speed)] == 0:
+            pos_y -= plane_y * move_speed
+    if direction == Direction.RIGHT:
+        if world_map[int(pos_x + plane_x * move_speed)][int(pos_y)] == 0:
+            pos_x += plane_x * move_speed
+        if world_map[int(pos_x)][int(pos_y + plane_y * move_speed)] == 0:
+            pos_y += plane_y * move_speed
+
+def turn(rot_speed):
+    global dir_x, dir_y, plane_x, plane_y
+    old_dir_x = dir_x
+    dir_x = dir_x * math.cos(rot_speed) - dir_y * math.sin(rot_speed)
+    dir_y = old_dir_x * math.sin(rot_speed) + dir_y * math.cos(rot_speed)
+    old_plane_x = plane_x
+    plane_x = plane_x * math.cos(rot_speed) - plane_y * math.sin(rot_speed)
+    plane_y = old_plane_x * math.sin(rot_speed) + plane_y * math.cos(rot_speed)
+
+def handle_input(keys, move_speed, rot_speed):
+    if keys[pygame.K_w]:
+        strafe(move_speed, Direction.FORWARD)
+    if keys[pygame.K_s]:
+        strafe(move_speed, Direction.BACKWARD)
+    if keys[pygame.K_a]:
+        strafe(move_speed, Direction.LEFT)
+    if keys[pygame.K_d]:
+        strafe(move_speed, Direction.RIGHT)
+    if keys[pygame.K_RIGHT]:
+        turn(-rot_speed)
+    if keys[pygame.K_LEFT]:
+        turn(rot_speed)
+
+TARGET_FPS = 60
+
+async def main():
     global pos_x, pos_y, dir_x, dir_y, plane_x, plane_y
     running = True
     while running:
@@ -153,41 +223,18 @@ def main():
                 running = False
 
         keys = pygame.key.get_pressed()
-        dt = pygame
         move_speed = 0.05
-        rot_speed = 0.03
-
-        if keys[pygame.K_UP]:
-            if world_map[int(pos_x + dir_x * move_speed)][int(pos_y)] == 0:
-                pos_x += dir_x * move_speed
-            if world_map[int(pos_x)][int(pos_y + dir_y * move_speed)] == 0:
-                pos_y += dir_y * move_speed
-        if keys[pygame.K_DOWN]:
-            if world_map[int(pos_x - dir_x * move_speed)][int(pos_y)] == 0:
-                pos_x -= dir_x * move_speed
-            if world_map[int(pos_x)][int(pos_y - dir_y * move_speed)] == 0:
-                pos_y -= dir_y * move_speed
-        if keys[pygame.K_RIGHT]:
-            old_dir_x = dir_x
-            dir_x = dir_x * math.cos(-rot_speed) - dir_y * math.sin(-rot_speed)
-            dir_y = old_dir_x * math.sin(-rot_speed) + dir_y * math.cos(-rot_speed)
-            old_plane_x = plane_x
-            plane_x = plane_x * math.cos(-rot_speed) - plane_y * math.sin(-rot_speed)
-            plane_y = old_plane_x * math.sin(-rot_speed) + plane_y * math.cos(-rot_speed)
-        if keys[pygame.K_LEFT]:
-            old_dir_x = dir_x
-            dir_x = dir_x * math.cos(rot_speed) - dir_y * math.sin(rot_speed)
-            dir_y = old_dir_x * math.sin(rot_speed) + dir_y * math.cos(rot_speed)
-            old_plane_x = plane_x
-            plane_x = plane_x * math.cos(rot_speed) - plane_y * math.sin(rot_speed)
-            plane_y = old_plane_x * math.sin(rot_speed) + plane_y * math.cos(rot_speed)
+        rot_speed = 0.05
+        handle_input(keys, move_speed, rot_speed)
 
         screen.fill((0, 0, 0))
         draw()
         pygame.display.flip()
-        clock.tick(60)
+        clock.tick(TARGET_FPS)
+
+        await asyncio.sleep(0)
 
     pygame.quit()
 
 if __name__ == "__main__":
-    main()
+    asyncio.run(main())
