@@ -55,6 +55,7 @@ plane_y = 1.0
 
 # Initialize pygame
 pygame.init()
+pygame.display.set_caption("pycaster")
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
 clock = pygame.time.Clock()
 
@@ -168,26 +169,27 @@ class Direction(Enum):
 
 def strafe(move_speed, direction):
     global pos_x, pos_y, dir_x, dir_y, plane_x, plane_y
-    if direction == Direction.FORWARD:
-        if world_map[int(pos_x + dir_x * move_speed)][int(pos_y)] == 0:
-            pos_x += dir_x * move_speed
-        if world_map[int(pos_x)][int(pos_y + dir_y * move_speed)] == 0:
-            pos_y += dir_y * move_speed
-    if direction == Direction.BACKWARD:
-        if world_map[int(pos_x - dir_x * move_speed)][int(pos_y)] == 0:
-            pos_x -= dir_x * move_speed
-        if world_map[int(pos_x)][int(pos_y - dir_y * move_speed)] == 0:
-            pos_y -= dir_y * move_speed
-    if direction == Direction.LEFT:
-        if world_map[int(pos_x - plane_x * move_speed)][int(pos_y)] == 0:
-            pos_x -= plane_x * move_speed
-        if world_map[int(pos_x)][int(pos_y - plane_y * move_speed)] == 0:
-            pos_y -= plane_y * move_speed
-    if direction == Direction.RIGHT:
-        if world_map[int(pos_x + plane_x * move_speed)][int(pos_y)] == 0:
-            pos_x += plane_x * move_speed
-        if world_map[int(pos_x)][int(pos_y + plane_y * move_speed)] == 0:
-            pos_y += plane_y * move_speed
+    match direction:
+        case Direction.FORWARD:
+            if world_map[int(pos_x + dir_x * move_speed)][int(pos_y)] == 0:
+                pos_x += dir_x * move_speed
+            if world_map[int(pos_x)][int(pos_y + dir_y * move_speed)] == 0:
+                pos_y += dir_y * move_speed
+        case Direction.BACKWARD:
+            if world_map[int(pos_x - dir_x * move_speed)][int(pos_y)] == 0:
+                pos_x -= dir_x * move_speed
+            if world_map[int(pos_x)][int(pos_y - dir_y * move_speed)] == 0:
+                pos_y -= dir_y * move_speed
+        case Direction.LEFT:
+            if world_map[int(pos_x - plane_x * move_speed)][int(pos_y)] == 0:
+                pos_x -= plane_x * move_speed
+            if world_map[int(pos_x)][int(pos_y - plane_y * move_speed)] == 0:
+                pos_y -= plane_y * move_speed
+        case Direction.RIGHT:
+            if world_map[int(pos_x + plane_x * move_speed)][int(pos_y)] == 0:
+                pos_x += plane_x * move_speed
+            if world_map[int(pos_x)][int(pos_y + plane_y * move_speed)] == 0:
+                pos_y += plane_y * move_speed
 
 def turn(rot_speed):
     global dir_x, dir_y, plane_x, plane_y
